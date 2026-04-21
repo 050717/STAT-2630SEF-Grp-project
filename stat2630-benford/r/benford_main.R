@@ -1,22 +1,14 @@
-# ============================================================
-#  STAT2630SEF Group Project — Benford's Law Analysis
-#  Pipeline: CSV → ETL → MongoDB Atlas → Benford Analysis
-#  plotdata collections are Power BI ready
-# ============================================================
+
 
 library(readr); library(dplyr); library(ggplot2)
 library(scales); library(gridExtra); library(tidyr); library(mongolite)
 
-# ============================================================
-#  CONFIG — 改这里
-# ============================================================
+
 MONGO_URL  <- "mongodb+srv://<user>:<password>@<cluster>.mongodb.net/"
 MONGO_DB   <- "stat2630"
 DATA_PATH  <- "../data/bank_transactions_data_2.csv"
 
-# ============================================================
-#  1. LOAD & ETL
-# ============================================================
+
 cat("[ 1/5 ] Loading data...\n")
 raw <- read_csv(DATA_PATH, show_col_types = FALSE)
 
@@ -27,9 +19,7 @@ dataClean <- raw %>%
 
 cat(sprintf("       Loaded %d rows → cleaned %d rows\n", nrow(raw), nrow(dataClean)))
 
-# ============================================================
-#  2. WRITE CLEAN DATA TO MONGODB
-# ============================================================
+
 cat("[ 2/5 ] Writing clean data to MongoDB Atlas...\n")
 tryCatch({
   col_raw <- mongo(collection = "transactions_clean", db = MONGO_DB, url = MONGO_URL)
@@ -38,9 +28,7 @@ tryCatch({
   cat(sprintf("       ✓ Inserted %d docs into transactions_clean\n", col_raw$count()))
 }, error = function(e) cat("       ✗ MongoDB write failed:", conditionMessage(e), "\n"))
 
-# ============================================================
-#  3. BENFORD ANALYSIS FUNCTION
-# ============================================================
+
 cat("[ 3/5 ] Running Benford analysis...\n")
 
 benford_expected <- log10(1 + 1/1:9)
@@ -97,14 +85,12 @@ result_all   <- run_benford(dataClean$TransactionAmount,                        
 result_fraud <- run_benford(dataClean$TransactionAmount[dataClean$IsFraud == 1],  "Fraudulent")
 result_legit <- run_benford(dataClean$TransactionAmount[dataClean$IsFraud == 0],  "Legitimate")
 
-# Also run AccountBalance
+
 result_bal   <- run_benford(dataClean$AccountBalance, "Account Balance")
 
 all_results <- list(result_all, result_fraud, result_legit, result_bal)
 
-# ============================================================
-#  4. WRITE PLOTDATA TO MONGODB (Power BI source)
-# ============================================================
+
 cat("[ 4/5 ] Writing plotdata to MongoDB (Power BI ready)...\n")
 tryCatch({
   col_plot <- mongo(collection = "benford_plotdata", db = MONGO_DB, url = MONGO_URL)
@@ -114,7 +100,7 @@ tryCatch({
   col_plot$insert(combined_plotdata)
   cat(sprintf("       ✓ Inserted %d docs into benford_plotdata\n", col_plot$count()))
 
-  # Summary stats collection
+  
   col_stats <- mongo(collection = "benford_summary", db = MONGO_DB, url = MONGO_URL)
   col_stats$drop()
   summary_df <- data.frame(
@@ -130,9 +116,7 @@ tryCatch({
 
 }, error = function(e) cat("       ✗ MongoDB plotdata write failed:", conditionMessage(e), "\n"))
 
-# ============================================================
-#  5. LOCAL PLOTS (ggplot2)
-# ============================================================
+
 cat("[ 5/5 ] Generating plots...\n")
 
 plot_benford <- function(res) {

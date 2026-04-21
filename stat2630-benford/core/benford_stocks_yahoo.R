@@ -1,9 +1,4 @@
-# ============================================================
-#  股票数据本福特定律分析脚本
-#  数据来源：Yahoo Finance（quantmod，无需API Key）
-#  股票：AAPL, GOOGL, MSFT, META, INTC, AMD
-#  分析列：收盘价（Close）、交易量（Volume）
-# ============================================================
+
 
 #install.packages(c("quantmod","mongolite","dplyr",
 #                 "ggplot2","scales","gridExtra"))
@@ -15,9 +10,7 @@ library(ggplot2)
 library(scales)
 library(gridExtra)
 
-# ============================================================
-#  配置
-# ============================================================
+
 
 STOCKS <- c("AAPL", "GOOGL", "MSFT", "META", "INTC", "AMD")
 
@@ -25,9 +18,7 @@ MONGO_URL        <- readline("请输入 MongoDB Atlas 连接字符串: ")
 MONGO_DB         <- "stat2630"
 MONGO_COLLECTION <- "stock_benford"
 
-# ============================================================
-#  从 Yahoo Finance 获取股票数据
-# ============================================================
+
 
 cat("正在从 Yahoo Finance 获取股票数据...\n")
 
@@ -62,9 +53,7 @@ rownames(all_stocks) <- NULL
 
 cat(sprintf("\n全部股票数据获取完成，共 %d 行\n", nrow(all_stocks)))
 
-# ============================================================
-#  写入 MongoDB Atlas（原始数据）
-# ============================================================
+
 
 cat("\n正在写入 MongoDB Atlas...\n")
 tryCatch({
@@ -81,9 +70,7 @@ tryCatch({
   cat(sprintf("✗ MongoDB 写入失败：%s\n", e$message))
 })
 
-# ============================================================
-#  本福特分析工具函数
-# ============================================================
+
 
 clean_vec <- function(x) {
   x <- as.character(x)
@@ -125,13 +112,10 @@ make_digit_counts <- function(digit_vec, keys, count_name) {
     pull(n)
 }
 
-# ============================================================
-#  逐股票逐列分析
-# ============================================================
 
 results_list <- list()
-plot_list_dec <- list()  # 十进制图
-plot_list_hex <- list()  # 进制图
+plot_list_dec <- list()  
+plot_list_hex <- list()  
 
 for (sym in STOCKS) {
   for (col in c("close", "volume")) {
@@ -142,7 +126,7 @@ for (sym in STOCKS) {
     vals   <- vals[!is.na(vals) & vals > 0]
     tmp    <- clean_vec(vals)
 
-    # 提取各位数字
+ 
     d1   <- as.integer(substr(tmp, 1, 1))
     d12  <- ifelse(nchar(tmp)<2, NA_integer_, as.integer(substr(tmp,1,2)))
     d123 <- ifelse(nchar(tmp)<3, NA_integer_, as.integer(substr(tmp,1,3)))
@@ -151,7 +135,7 @@ for (sym in STOCKS) {
     do1  <- substr(as.character(as.octmode(as.integer(tmp))), 1, 1)
     dh1  <- substr(as.character(as.hexmode(as.integer(tmp))), 1, 1)
 
-    # 频数
+    
     cnt1   <- make_digit_counts(d1,   1:9,             "n")
     cnt12  <- make_digit_counts(d12,  10:99,            "n")
     cnt123 <- make_digit_counts(d123, 100:999,          "n")
@@ -246,9 +230,6 @@ for (sym in STOCKS) {
   }
 }
 
-# ============================================================
-#  写入检验结果到 MongoDB
-# ============================================================
 
 results_df <- do.call(rbind, results_list)
 rownames(results_df) <- NULL
